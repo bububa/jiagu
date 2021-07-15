@@ -27,12 +27,15 @@ func StringInSlice(arr []string, i int) string {
 // StringSliceInRange 获取[]string中from-to位置字符串
 func StringSliceInRange(arr []string, from int, to int) []string {
 	l := len(arr)
+<<<<<<< HEAD
 	if from <= -1*l && to <= -1*l {
 		return []string{}
 	}
 	if from >= l {
 		return []string{}
 	}
+=======
+>>>>>>> f940ad9 (init commit)
 	return arr[idxInSlice(l, from) : idxInSlice(l, to-1)+1]
 }
 
@@ -45,12 +48,15 @@ func RuneFromIndex(w []rune, i int) string {
 // RuneInRange 从from到to截取字符串
 func RuneInRange(w []rune, from int, to int) string {
 	l := len(w)
+<<<<<<< HEAD
 	if from <= -1*l && to <= -1*l {
 		return ""
 	}
 	if from >= l {
 		return ""
 	}
+=======
+>>>>>>> f940ad9 (init commit)
 	return string(w[idxInSlice(l, from) : idxInSlice(l, to-1)+1])
 }
 

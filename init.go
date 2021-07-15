@@ -3,7 +3,6 @@ package jiagu
 import (
 	"compress/gzip"
 	"embed"
-	_ "embed"
 	"fmt"
 
 	"github.com/bububa/jiagu/perceptron"
