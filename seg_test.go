@@ -28,6 +28,30 @@ func TestSegDefault(t *testing.T) {
 	}
 }
 
+// TestSegNumber 测试数字分词
+func TestSegNumber(t *testing.T) {
+	txt := "abc 103.25明天100%会不会100万下雨"
+	words := Seg(txt, segment.Default_SegMode)
+	expects := []string{
+		"abc",
+		"103.25",
+		"明天",
+		"100%",
+		"会不会",
+		"100万",
+		"下雨",
+	}
+	if len(words) != len(expects) {
+		t.Errorf("result: %+v, %d, expect: %+v\n", words, len(words), expects)
+		return
+	}
+	for idx, w := range words {
+		if w != expects[idx] {
+			t.Errorf("result: %+v, expect: %+v\n", words, expects)
+		}
+	}
+}
+
 // TestSegProbe 测试分词
 func TestSegProbe(t *testing.T) {
 	txt := "黑龙江省双鸭山市宝清县宝清镇通达街341号"

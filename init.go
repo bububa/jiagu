@@ -5,8 +5,10 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/bububa/jiagu/knowledge"
 	"github.com/bububa/jiagu/perceptron"
 	"github.com/bububa/jiagu/segment"
+	"github.com/bububa/jiagu/textrank"
 )
 
 const (
@@ -20,6 +22,8 @@ const (
 	CWS_MODEL = "cws.model"
 	// VOCAB_DICT 分词字典
 	VOCAB_DICT = "jiagu.dict"
+	// STOPWORDS stopwords字典
+	STOPWORDS_DICT = "stopwords.txt"
 )
 
 //go:embed model/*
@@ -36,10 +40,10 @@ func init() {
 	if nerModel, err = initPerceptron(NER_MODEL); err != nil {
 		panic(err)
 	}
-	if kgModel, err = initPerceptron(KG_MODEL); err != nil {
-		panic(err)
-	}
 	initSegNroute()
+	initKnowledge()
+	initKeywords()
+	initSummarize()
 }
 
 func initPerceptron(modelFile string) (*perceptron.Perceptron, error) {
@@ -66,4 +70,36 @@ func initSegNroute() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func initKnowledge() {
+	modelR, err := modelFS.Open(fmt.Sprintf("model/%s", KG_MODEL))
+	if err != nil {
+		panic(err)
+	}
+	defer modelR.Close()
+	knowledgeModel, err = knowledge.NewFromReader(modelR)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func initKeywords() {
+	stopwordsR, err := dictFS.Open(fmt.Sprintf("dict/%s", STOPWORDS_DICT))
+	if err != nil {
+		panic(err)
+	}
+	defer stopwordsR.Close()
+	keywordsModel = textrank.NewKeywords(segNroute)
+	keywordsModel.LoadStopwords(stopwordsR)
+}
+
+func initSummarize() {
+	stopwordsR, err := dictFS.Open(fmt.Sprintf("dict/%s", STOPWORDS_DICT))
+	if err != nil {
+		panic(err)
+	}
+	defer stopwordsR.Close()
+	summarizeModel = textrank.NewSummarize(segNroute)
+	summarizeModel.LoadStopwords(stopwordsR)
 }

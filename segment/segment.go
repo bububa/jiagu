@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/bububa/jiagu/perceptron"
 	pmodel "github.com/bububa/jiagu/perceptron/model"
@@ -24,9 +25,12 @@ const (
 )
 
 var (
-	reEng  = regexp.MustCompile("^[a-zA-Z0-9]$")
-	reHan  = regexp.MustCompile("([\u4E00-\u9FD5a-zA-Z0-9+#&\\._%\\-]+)")
-	reSkip = regexp.MustCompile("(\r\n|\\s)")
+	reEng            = regexp.MustCompile("^[a-zA-Z0-9]$")
+	reNum            = regexp.MustCompile("^[0-9]$")
+	reChineseNumSeg  = regexp.MustCompile("^[个十百千万亿兆]$")
+	reChineseDateSeg = regexp.MustCompile("^[天年月日]$")
+	reHan            = regexp.MustCompile("([\u4E00-\u9FD5a-zA-Z0-9+#&\\._%\\-]+)")
+	reSkip           = regexp.MustCompile("(\r\n|\\s)")
 )
 
 // Segment 分词主类
@@ -178,10 +182,10 @@ func (s *Segment) createDAG(sentence string) [][]int {
 			if _, found := s.vocab[cand]; found {
 				candIdx = append(candIdx, i)
 			}
-			i += 1
+			i++
 		}
 		dag = append(dag, candIdx)
-		idx += 1
+		idx++
 	}
 	return dag
 }
@@ -239,23 +243,41 @@ func (s *Segment) CutWords(sentence string) []string {
 	var (
 		x   int
 		y   int
-		buf string
+		buf strings.Builder
 	)
 	for x < n {
 		y = route[x].I + 1
 		word := utils.RuneInRange(runeSentence, x, y)
-		if reEng.MatchString(word) && len(word) == 1 {
-			buf += word
-		} else if buf != "" {
-			ret = append(ret, buf)
-			buf = ""
+		var prevWord string
+		if x > 0 {
+			prevWord = utils.RuneInIndex(runeSentence, x-1)
 		}
-		ret = append(ret, word)
+		var nextWord string
+		if x < n-1 {
+			nextWord = utils.RuneInIndex(runeSentence, x+1)
+		}
+		if reChineseNumSeg.MatchString(word) && reNum.MatchString(prevWord) {
+			buf.WriteString(word)
+		} else if word == "." && reNum.MatchString(prevWord) && reNum.MatchString(nextWord) {
+			buf.WriteString(word)
+		} else if word == "%" && reNum.MatchString(prevWord) && !reNum.MatchString(nextWord) {
+			buf.WriteString(word)
+			ret = append(ret, buf.String())
+			buf.Reset()
+		} else if reEng.MatchString(word) && len(word) == 1 {
+			buf.WriteString(word)
+		} else {
+			if buf.Len() != 0 {
+				ret = append(ret, buf.String())
+				buf.Reset()
+			}
+			ret = append(ret, word)
+		}
 		x = y
 	}
-	if buf != "" {
-		ret = append(ret, buf)
-		buf = ""
+	if buf.Len() != 0 {
+		ret = append(ret, buf.String())
+		buf.Reset()
 	}
 	return ret
 }
@@ -272,29 +294,29 @@ func (s *Segment) ModelCut(sentence string) []string {
 
 func (s *Segment) label2Words(list []string, labels []pmodel.Class) []string {
 	var (
-		tmpWord string
+		tmpWord strings.Builder
 		ret     []string
 	)
 	for idx, w := range list {
 		label := labels[idx]
 		switch label.Label {
 		case "B", "M":
-			tmpWord += w
+			tmpWord.WriteString(w)
 		case "E":
-			tmpWord += w
-			ret = append(ret, tmpWord)
-			tmpWord = ""
+			tmpWord.WriteString(w)
+			ret = append(ret, tmpWord.String())
+			tmpWord.Reset()
 		default:
-			if tmpWord != "" {
-				ret = append(ret, tmpWord)
-				tmpWord = ""
+			if tmpWord.Len() != 0 {
+				ret = append(ret, tmpWord.String())
+				tmpWord.Reset()
 			}
 			ret = append(ret, w)
 		}
 	}
-	if tmpWord != "" {
-		ret = append(ret, tmpWord)
-		tmpWord = ""
+	if tmpWord.Len() != 0 {
+		ret = append(ret, tmpWord.String())
+		tmpWord.Reset()
 	}
 	return ret
 }
@@ -320,7 +342,13 @@ func (s *Segment) SegDefault(sentence string) []string {
 				ret = append(ret, words...)
 				continue
 			}
-			ret = append(ret, utils.StringSplit(str)...)
+			list := []rune(str)
+			for _, w := range list {
+				if unicode.IsSpace(w) {
+					continue
+				}
+				ret = append(ret, string(w))
+			}
 		}
 	}
 	return ret
@@ -363,7 +391,7 @@ func (s *Segment) SegNewWords(sentence string) []string {
 					var i int
 					for i < canLimit {
 						ngram := strings.Join(utils.StringSliceInRange(words1, i, i+n), "")
-						i += 1
+						i++
 						wlen := len([]rune(ngram))
 						if wlen > 4 || wlen == 1 {
 							continue
@@ -376,7 +404,7 @@ func (s *Segment) SegNewWords(sentence string) []string {
 						}
 						newWords = append(newWords, ngram)
 					}
-					n += 1
+					n++
 				}
 				for _, w := range newWords {
 					s.AddVocab(w, 1)
@@ -389,7 +417,13 @@ func (s *Segment) SegNewWords(sentence string) []string {
 				}
 				continue
 			}
-			ret = append(ret, utils.StringSplit(str)...)
+			list := []rune(str)
+			for _, w := range list {
+				if unicode.IsSpace(w) {
+					continue
+				}
+				ret = append(ret, string(w))
+			}
 		}
 	}
 	return ret
