@@ -1,15 +1,12 @@
 package textrank
 
 import (
-	"bufio"
-	"errors"
 	"io"
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/bububa/jiagu/segment"
-	"github.com/bububa/jiagu/utils"
+	"github.com/bububa/jiagu/stopwords"
 )
 
 const (
@@ -23,29 +20,22 @@ const (
 
 // Keywords 提取关键词类
 type Keywords struct {
-	useStopword bool
-	maxIter     int
-	window      int
-	tol         float64
-	stopwords   *utils.StringSet
-	seg         *segment.Segment
+	maxIter   int
+	window    int
+	tol       float64
+	stopwords *stopwords.Stopwords
+	seg       *segment.Segment
 }
 
 // New 初始化
-func NewKeywords(seg *segment.Segment) *Keywords {
+func NewKeywords(seg *segment.Segment, stwords *stopwords.Stopwords) *Keywords {
 	return &Keywords{
-		useStopword: true,
-		maxIter:     DEFAULT_MAX_ITER,
-		window:      DEFAULT_WINDOW,
-		tol:         DEFAULT_TOL,
-		seg:         seg,
-		stopwords:   utils.NewStringSet(),
+		maxIter:   DEFAULT_MAX_ITER,
+		window:    DEFAULT_WINDOW,
+		tol:       DEFAULT_TOL,
+		seg:       seg,
+		stopwords: stwords,
 	}
-}
-
-// UseStopword 是否使用stopword
-func (k *Keywords) UseStopword(use bool) {
-	k.useStopword = use
 }
 
 // SetMaxIter 设置maxIter
@@ -65,53 +55,33 @@ func (k *Keywords) SetTol(tol float64) {
 
 // AddStopwords 添加stopword
 func (k *Keywords) AddStopwords(keywords []string) {
+	if k.stopwords == nil {
+		return
+	}
 	k.stopwords.Add(keywords)
 }
 
 // DelStopwords 删除stopword
 func (k *Keywords) DelStopwords(keywords []string) {
+	if k.stopwords == nil {
+	}
 	k.stopwords.Del(keywords)
 }
 
 // LoadStopwords 加载stopwords
 func (k *Keywords) LoadStopwords(r io.Reader) error {
-	buf := bufio.NewReader(r)
-	var kws []string
-	for {
-		kw, err := buf.ReadString('\n')
-		if err != nil && errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return err
-		}
-		kw = strings.TrimSpace(kw)
-		kws = append(kws, kw)
+	if k.stopwords == nil {
+		k.stopwords = stopwords.New()
 	}
-	k.AddStopwords(kws)
-	return nil
+	return k.stopwords.Load(r)
 }
 
 // LoadStopwordsFile 加载stopwords文件
 func (k *Keywords) LoadStopwrdsFile(filename string) error {
-	fd, err := os.Open(filename)
-	if err != nil {
-		return err
+	if k.stopwords == nil {
+		k.stopwords = stopwords.New()
 	}
-	defer fd.Close()
-	buf := bufio.NewReader(fd)
-	var kws []string
-	for {
-		kw, err := buf.ReadString('\n')
-		if err != nil && errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return err
-		}
-		kw = strings.TrimSpace(kw)
-		kws = append(kws, kw)
-	}
-	k.AddStopwords(kws)
-	return nil
+	return k.stopwords.LoadFile(filename)
 }
 
 // Extract 提取关键词
@@ -176,8 +146,8 @@ func (k *Keywords) createGraph(sents [][]string, wordsIndex map[string]int, wind
 			if !found {
 				continue
 			}
-			graph[idx1][idx2] += 1
-			graph[idx2][idx1] += 1
+			graph[idx1][idx2]++
+			graph[idx2][idx1]++
 		}
 	}
 	return graph

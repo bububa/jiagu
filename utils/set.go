@@ -8,6 +8,14 @@ type StringSet struct {
 	locker *sync.RWMutex
 }
 
+func InitStringSet() StringSet {
+	return StringSet{
+		mp:     make(map[string]struct{}),
+		locker: new(sync.RWMutex),
+	}
+}
+
+// NewStringSet init StringSet instance
 func NewStringSet() *StringSet {
 	return &StringSet{
 		mp:     make(map[string]struct{}),
@@ -15,6 +23,7 @@ func NewStringSet() *StringSet {
 	}
 }
 
+// Add add strings to StringSet
 func (s *StringSet) Add(strs []string) {
 	s.locker.Lock()
 	defer s.locker.Unlock()
@@ -23,6 +32,7 @@ func (s *StringSet) Add(strs []string) {
 	}
 }
 
+// Del delete strings from StringSet
 func (s *StringSet) Del(strs []string) {
 	s.locker.Lock()
 	defer s.locker.Unlock()
@@ -31,6 +41,7 @@ func (s *StringSet) Del(strs []string) {
 	}
 }
 
+// Exists check str exists in StringSet items or not
 func (s *StringSet) Exists(str string) bool {
 	s.locker.RLock()
 	defer s.locker.RUnlock()
@@ -38,67 +49,27 @@ func (s *StringSet) Exists(str string) bool {
 	return found
 }
 
+// Total total number of StringSet items
 func (s *StringSet) Total() int {
 	s.locker.RLock()
 	defer s.locker.RUnlock()
 	return len(s.mp)
 }
 
-// StringCounter 统计str重复次数
-type StringCounter struct {
-	mp     map[string]int
-	locker *sync.RWMutex
-}
-
-func NewStringCounter(strs []string) *StringCounter {
-	s := &StringSet{
-		mp:     make(map[string]int),
-		locker: new(sync.RWMutex),
-	}
-	if len(strs) > 0 {
-		s.Add(strs)
-	}
-	return s
-}
-
-func (s *StringCounter) Add(strs []string) {
-	s.locker.Lock()
-	defer s.locker.Unlock()
-	for _, str := range strs {
-		s.mp[str] += 1
-	}
-}
-
-func (s *StringCounter) Del(strs []string) {
-	s.locker.Lock()
-	defer s.locker.Unlock()
-	for _, str := range strs {
-		if n, found := s.mp[str]; found {
-			if n <= 1 {
-				delete(s.mp, str)
-			} else {
-				s.mp[str]--
-			}
+// Iter StringSet items iter
+func (s *StringSet) Iter() <-chan string {
+	s.locker.RLock()
+	l := len(s.mp)
+	s.locker.RUnlock()
+	ch := make(chan string, l)
+	locker := s.locker
+	go func(ch chan string, locker *sync.RWMutex) {
+		locker.RLock()
+		defer locker.RUnlock()
+		for str, _ := range s.mp {
+			ch <- str
 		}
-	}
-}
-
-func (s *StringCounter) Exists(str string) bool {
-	s.locker.RLock()
-	defer s.locker.RUnlock()
-	_, found := s.mp[str]
-	return found
-}
-
-func (s *StringCounter) Count(str string) int {
-	s.locker.RLock()
-	defer s.locker.RUnlock()
-	n, _ := s.mp[str]
-	return n
-}
-
-func (s *StringCounter) Total() int {
-	s.locker.RLock()
-	defer s.locker.RUnlock()
-	return len(s.mp)
+		close(ch)
+	}(ch, locker)
+	return ch
 }

@@ -6,7 +6,16 @@ import (
 
 var summarizeModel *textrank.Summarize
 
+// SummarizeInstance get summarizeModel signleton
+func SummarizeInstance() *textrank.Summarize {
+	if summarizeModel == nil {
+		summarizeModel = textrank.NewSummarize(Segment(), Stopwords())
+	}
+	return summarizeModel
+}
+
 // Summarize 生成摘要
 func Summarize(txt string, n int) []string {
-	return summarizeModel.Summary(txt, n)
+	model := SummarizeInstance()
+	return model.Summary(txt, n)
 }

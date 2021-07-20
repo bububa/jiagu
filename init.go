@@ -5,10 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/bububa/jiagu/knowledge"
 	"github.com/bububa/jiagu/perceptron"
-	"github.com/bububa/jiagu/segment"
-	"github.com/bububa/jiagu/textrank"
 )
 
 const (
@@ -32,20 +29,6 @@ var modelFS embed.FS
 //go:embed dict/*
 var dictFS embed.FS
 
-func init() {
-	var err error
-	if posModel, err = initPerceptron(POS_MODEL); err != nil {
-		panic(err)
-	}
-	if nerModel, err = initPerceptron(NER_MODEL); err != nil {
-		panic(err)
-	}
-	initSegNroute()
-	initKnowledge()
-	initKeywords()
-	initSummarize()
-}
-
 func initPerceptron(modelFile string) (*perceptron.Perceptron, error) {
 	fd, err := modelFS.Open(fmt.Sprintf("model/%s", modelFile))
 	if err != nil {
@@ -53,53 +36,4 @@ func initPerceptron(modelFile string) (*perceptron.Perceptron, error) {
 	}
 	defer fd.Close()
 	return perceptron.NewFromReader(fd)
-}
-
-func initSegNroute() {
-	vocabR, err := dictFS.Open(fmt.Sprintf("dict/%s", VOCAB_DICT))
-	if err != nil {
-		panic(err)
-	}
-	defer vocabR.Close()
-	modelR, err := modelFS.Open(fmt.Sprintf("model/%s", CWS_MODEL))
-	if err != nil {
-		panic(err)
-	}
-	defer modelR.Close()
-	segNroute, err = segment.NewFromReader(vocabR, modelR)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func initKnowledge() {
-	modelR, err := modelFS.Open(fmt.Sprintf("model/%s", KG_MODEL))
-	if err != nil {
-		panic(err)
-	}
-	defer modelR.Close()
-	knowledgeModel, err = knowledge.NewFromReader(modelR)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func initKeywords() {
-	stopwordsR, err := dictFS.Open(fmt.Sprintf("dict/%s", STOPWORDS_DICT))
-	if err != nil {
-		panic(err)
-	}
-	defer stopwordsR.Close()
-	keywordsModel = textrank.NewKeywords(segNroute)
-	keywordsModel.LoadStopwords(stopwordsR)
-}
-
-func initSummarize() {
-	stopwordsR, err := dictFS.Open(fmt.Sprintf("dict/%s", STOPWORDS_DICT))
-	if err != nil {
-		panic(err)
-	}
-	defer stopwordsR.Close()
-	summarizeModel = textrank.NewSummarize(segNroute)
-	summarizeModel.LoadStopwords(stopwordsR)
 }

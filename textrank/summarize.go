@@ -1,39 +1,29 @@
 package textrank
 
 import (
-	"bufio"
-	"errors"
 	"io"
-	"os"
 	"sort"
 	"strings"
 
 	"github.com/bububa/jiagu/segment"
-	"github.com/bububa/jiagu/utils"
+	"github.com/bububa/jiagu/stopwords"
 )
 
 type Summarize struct {
-	useStopword bool
-	maxIter     int
-	tol         float64
-	stopwords   *utils.StringSet
-	seg         *segment.Segment
+	maxIter   int
+	tol       float64
+	stopwords *stopwords.Stopwords
+	seg       *segment.Segment
 }
 
 // New 初始化
-func NewSummarize(seg *segment.Segment) *Summarize {
+func NewSummarize(seg *segment.Segment, stwords *stopwords.Stopwords) *Summarize {
 	return &Summarize{
-		useStopword: true,
-		maxIter:     DEFAULT_MAX_ITER,
-		tol:         DEFAULT_TOL,
-		seg:         seg,
-		stopwords:   utils.NewStringSet(),
+		maxIter:   DEFAULT_MAX_ITER,
+		tol:       DEFAULT_TOL,
+		seg:       seg,
+		stopwords: stwords,
 	}
-}
-
-// UseStopword 是否使用stopword
-func (s *Summarize) UseStopword(use bool) {
-	s.useStopword = use
 }
 
 // SetMaxIter 设置maxIter
@@ -48,53 +38,34 @@ func (s *Summarize) SetTol(tol float64) {
 
 // AddStopwords 添加stopword
 func (s *Summarize) AddStopwords(keywords []string) {
+	if s.stopwords == nil {
+		return
+	}
 	s.stopwords.Add(keywords)
 }
 
 // DelStopwords 删除stopword
 func (s *Summarize) DelStopwords(keywords []string) {
+	if s.stopwords == nil {
+		return
+	}
 	s.stopwords.Del(keywords)
 }
 
 // LoadStopwords 加载stopwords
 func (s *Summarize) LoadStopwords(r io.Reader) error {
-	buf := bufio.NewReader(r)
-	var kws []string
-	for {
-		kw, err := buf.ReadString('\n')
-		if err != nil && errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return err
-		}
-		kw = strings.TrimSpace(kw)
-		kws = append(kws, kw)
+	if s.stopwords == nil {
+		s.stopwords = stopwords.New()
 	}
-	s.AddStopwords(kws)
-	return nil
+	return s.stopwords.Load(r)
 }
 
 // LoadStopwordsFile 加载stopwords文件
-func (s *Summarize) LoadStopwrdsFile(filename string) error {
-	fd, err := os.Open(filename)
-	if err != nil {
-		return err
+func (s *Summarize) LoadStopwordsFile(filename string) error {
+	if s.stopwords == nil {
+		s.stopwords = stopwords.New()
 	}
-	defer fd.Close()
-	buf := bufio.NewReader(fd)
-	var kws []string
-	for {
-		kw, err := buf.ReadString('\n')
-		if err != nil && errors.Is(err, io.EOF) {
-			break
-		} else if err != nil {
-			return err
-		}
-		kw = strings.TrimSpace(kw)
-		kws = append(kws, kw)
-	}
-	s.AddStopwords(kws)
-	return nil
+	return s.stopwords.LoadFile(filename)
 }
 
 // Summary 生成摘要

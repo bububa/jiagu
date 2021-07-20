@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bububa/jiagu/segment"
-	"github.com/bububa/jiagu/utils"
+	"github.com/bububa/jiagu/stopwords"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 	}
 )
 
-func psegCutStopwords(seg *segment.Segment, sentences []string, stopwords *utils.StringSet) [][]string {
+func psegCutStopwords(seg *segment.Segment, sentences []string, stopwords *stopwords.Stopwords) [][]string {
 	sents := make([][]string, 0, len(sentences))
 	for _, sent := range sentences {
 		kws := seg.Seg(sent, segment.Default_SegMode)
