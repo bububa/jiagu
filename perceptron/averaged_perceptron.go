@@ -2,7 +2,6 @@ package perceptron
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"sort"
 
@@ -23,7 +22,7 @@ type AveragedPerceptron struct {
 // NewAveragedPerceptron 新建Perceptron
 func NewAveragedPerceptron() *AveragedPerceptron {
 	return &AveragedPerceptron{
-		weights: model.NewWeights(),
+		weights: model.NewWeights(0),
 		classes: make(map[string]struct{}),
 		totals:  make(map[string]float64),
 		tstamps: make(map[string]float64),
@@ -33,7 +32,7 @@ func NewAveragedPerceptron() *AveragedPerceptron {
 // NewAveragedPerceptronFromModel 从model创建Perceptron
 func NewAveragedPerceptronFromModel(aModel *model.PerceptronModel) *AveragedPerceptron {
 	return &AveragedPerceptron{
-		weights: aModel.Weights,
+		weights: NewWeightsFromMap(aModel.Weights),
 		classes: aModel.Classes,
 		totals:  make(map[string]float64),
 		tstamps: make(map[string]float64),
@@ -48,29 +47,30 @@ func NewAveragedPerceptronFromReader(r io.Reader) (*AveragedPerceptron, error) {
 		return nil, err
 	}
 	return &AveragedPerceptron{
-		weights: aModel.Weights,
+		weights: NewWeightsFromMap(aModel.Weights),
 		classes: aModel.Classes,
 		totals:  make(map[string]float64),
 		tstamps: make(map[string]float64),
 	}, nil
 }
 
+func (p *AveragedPerceptron) Len() int {
+	return len(classes)
+}
+
 // Predict Dot-product the features and current weights and return the best label.
 func (p *AveragedPerceptron) Predict(features []model.Feature) model.Class {
-	scores := make(map[string]float64, len(p.classes))
+	scores := make(map[string]float64, p.Len())
 	for _, feature := range features {
 		if feature.IsZero() {
 			continue
 		}
-		classes := p.weights.GetFeatureWeights(feature.Label)
-		if classes == nil {
-			continue
-		}
-		for label, weight := range classes {
-			if _, found := p.classes[label]; !found {
+		classIter := p.weights.GetFeatureWeights(feature.Label)
+		for kv := range classIter {
+			if _, found := p.classes[kv.Label]; !found {
 				continue
 			}
-			scores[label] += weight * feature.Value
+			scores[kv.Label] += kv.Value * feature.Value
 		}
 	}
 	totalScores := len(scores)
@@ -118,10 +118,12 @@ func (p *AveragedPerceptron) updateFeature(clas string, feat string, weight floa
 
 // AverageWeights Average weights from all iterations.
 func (p *AveragedPerceptron) AverageWeights() {
-	for feat, classes := range p.weights {
-		for clas, weight := range classes {
-			key := featureClassKey(feat, clas)
-			total := p.totals[key] + (p.instances-p.tstamps[key])*weight
+	iter := p.weights.Features()
+	for feat := range iter {
+		classIter := p.GetFeatureWeights(feat)
+		for kv := range classIter {
+			key := featureClassKey(feat, kv.Label)
+			total := p.totals[key] + (p.instances-p.tstamps[key])*kv.Value
 			averaged, _ := decimal.NewFromFloat(total / p.instances).Round(3).Float64()
 			if averaged > 0.0001 {
 				p.weights.SetWeight(feat, clas, averaged)
@@ -138,11 +140,7 @@ func (p *AveragedPerceptron) AddClass(clas string) {
 // Model
 func (p AveragedPerceptron) Model() model.PerceptronModel {
 	return model.PerceptronModel{
-		Weights: p.weights,
+		Weights: p.weights.Map(),
 		Classes: p.classes,
 	}
-}
-
-func featureClassKey(feat string, clas string) string {
-	return fmt.Sprintf("%s-%s", feat, clas)
 }
