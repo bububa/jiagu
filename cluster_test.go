@@ -2,8 +2,6 @@ package jiagu
 
 import (
 	"testing"
-
-	"github.com/bububa/jiagu/segment"
 )
 
 // TestCluster 测试文本聚类
@@ -19,7 +17,7 @@ func TestCluster(t *testing.T) {
 		"现在可以快速测试一下spaCy的相关功能，我们以英文数据为例，spaCy目前主要支持英文和德文",
 	}
 	tokenizer := func(txt string) []string {
-		return Seg(txt, segment.Default_SegMode)
+		return Seg(txt)
 	}
 	clusters, err := KmeansCluster(corpus, tokenizer, 4)
 	if err != nil {

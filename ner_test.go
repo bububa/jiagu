@@ -2,14 +2,12 @@ package jiagu
 
 import (
 	"testing"
-
-	"github.com/bububa/jiagu/segment"
 )
 
 // TestNer 测试命名实体识别
 func TestNer(t *testing.T) {
 	txt := "厦门明天会不会下雨"
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	expects := []string{
 		"B-LOC",
 		"O",

@@ -31,9 +31,9 @@ func Segment() *segment.Segment {
 }
 
 // Seg 分词
-func Seg(sentence string, mode segment.SegMode) []string {
+func Seg(sentence string) []string {
 	model := Segment()
-	return model.Seg(sentence, mode)
+	return model.Seg(sentence, segment.Default_SegMode)
 }
 
 // LoadUserDict 加载用户词典

@@ -9,7 +9,7 @@ import (
 // TestSegDefault 测试分词
 func TestSegDefault(t *testing.T) {
 	txt := "厦门明天会不会下雨"
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	expects := []string{
 		"厦门",
 		"明天",
@@ -31,7 +31,7 @@ func TestSegDefault(t *testing.T) {
 // TestSegNumber 测试数字分词
 func TestSegNumber(t *testing.T) {
 	txt := "abc 103.25明天100%会不会100万下雨"
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	expects := []string{
 		"abc",
 		"103.25",
@@ -55,7 +55,8 @@ func TestSegNumber(t *testing.T) {
 // TestSegProbe 测试分词
 func TestSegProbe(t *testing.T) {
 	txt := "黑龙江省双鸭山市宝清县宝清镇通达街341号"
-	words := Seg(txt, segment.Probe_SegMode)
+	seg := Segment()
+	words := seg.Seg(txt, segment.Probe_SegMode)
 	expects := []string{
 		"黑龙江省",
 		"双鸭山市",
@@ -81,7 +82,7 @@ func TestSegProbe(t *testing.T) {
 // TestUserDict 测试用户词典
 func TestUserDict(t *testing.T) {
 	txt := "汉服和服装、维基图谱"
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	expects := []string{
 		"汉服", "和", "服装", "、", "维基", "图谱",
 	}
@@ -96,7 +97,7 @@ func TestUserDict(t *testing.T) {
 		}
 	}
 	AddVocabs([]string{"汉服和服装"})
-	words = Seg(txt, segment.Default_SegMode)
+	words = Seg(txt)
 	expects = []string{
 		"汉服和服装", "、", "维基", "图谱",
 	}

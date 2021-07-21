@@ -2,14 +2,12 @@ package jiagu
 
 import (
 	"testing"
-
-	"github.com/bububa/jiagu/segment"
 )
 
 // TestPos 测试词性标注
 func TestPos(t *testing.T) {
 	txt := "厦门明天会不会下雨"
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	expects := []string{
 		"ns",
 		"nt",

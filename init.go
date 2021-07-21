@@ -17,6 +17,8 @@ const (
 	KG_MODEL = "kg.model"
 	// CWS_MODEL 分词model文件
 	CWS_MODEL = "cws.model"
+	// SENTIMENT_MODEL 情感分析model文件
+	SENTIMENT_MODEL = "sentiment.model"
 	// VOCAB_DICT 分词字典
 	VOCAB_DICT = "jiagu.dict"
 	// STOPWORDS stopwords字典

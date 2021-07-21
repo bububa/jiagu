@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/bububa/jiagu/knowledge"
-	"github.com/bububa/jiagu/segment"
 )
 
 var knowledgeModel *knowledge.Knowledge
@@ -28,6 +27,6 @@ func KnowledgeInstance() *knowledge.Knowledge {
 // Knowledge 知识图谱关系提取
 func Knowledge(txt string) []knowledge.Entity {
 	model := KnowledgeInstance()
-	words := Seg(txt, segment.Default_SegMode)
+	words := Seg(txt)
 	return model.Entities(words)
 }
