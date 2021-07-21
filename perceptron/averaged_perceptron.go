@@ -1,7 +1,7 @@
 package perceptron
 
 import (
-	"encoding/json"
+	"encoding/gob"
 	"io"
 	"sort"
 
@@ -12,7 +12,7 @@ import (
 
 // AveragedPerceptron Averaged Perceptron for POS tagging
 type AveragedPerceptron struct {
-	weights   model.Weights // Each feature gets its own weight vector, so weights is a dict-of-dicts
+	weights   *model.Weights // Each feature gets its own weight vector, so weights is a dict-of-dicts
 	classes   map[string]struct{}
 	totals    map[string]float64 // The accumulated values, for the averaging. These will be keyed by feature/clas tuples
 	tstamps   map[string]float64 // The last time the feature was changed, for the averaging. Also keyed by feature/clas tuples
@@ -29,10 +29,10 @@ func NewAveragedPerceptron() *AveragedPerceptron {
 	}
 }
 
-// NewAveragedPerceptronFromModel 从model创建Perceptron
-func NewAveragedPerceptronFromModel(aModel *model.PerceptronModel) *AveragedPerceptron {
+// NewAveragedPerceptronFromJSON 从JSON Model创建Perceptron
+func NewAveragedPerceptronFromJSON(aModel model.PerceptronJSONModel) *AveragedPerceptron {
 	return &AveragedPerceptron{
-		weights: NewWeightsFromMap(aModel.Weights),
+		weights: model.NewWeightsFromMap(aModel.Weights),
 		classes: aModel.Classes,
 		totals:  make(map[string]float64),
 		tstamps: make(map[string]float64),
@@ -41,13 +41,13 @@ func NewAveragedPerceptronFromModel(aModel *model.PerceptronModel) *AveragedPerc
 
 // NewAveragedPerceptronFromReader 从io.Reader创建Perceptron
 func NewAveragedPerceptronFromReader(r io.Reader) (*AveragedPerceptron, error) {
-	var aModel model.PerceptronModel
-	err := json.NewDecoder(r).Decode(&aModel)
+	var aModel model.PerceptronJSONModel
+	err := gob.NewDecoder(r).Decode(&aModel)
 	if err != nil {
 		return nil, err
 	}
 	return &AveragedPerceptron{
-		weights: NewWeightsFromMap(aModel.Weights),
+		weights: model.NewWeightsFromMap(aModel.Weights),
 		classes: aModel.Classes,
 		totals:  make(map[string]float64),
 		tstamps: make(map[string]float64),
@@ -55,7 +55,7 @@ func NewAveragedPerceptronFromReader(r io.Reader) (*AveragedPerceptron, error) {
 }
 
 func (p *AveragedPerceptron) Len() int {
-	return len(classes)
+	return len(p.classes)
 }
 
 // Predict Dot-product the features and current weights and return the best label.
@@ -110,7 +110,7 @@ func (p *AveragedPerceptron) Update(truth string, guess string, features []model
 }
 
 func (p *AveragedPerceptron) updateFeature(clas string, feat string, weight float64, value float64) {
-	key := featureClassKey(feat, clas)
+	key := model.FeatureClassKey(feat, clas)
 	p.totals[key] += (p.instances - p.tstamps[key]) * weight
 	p.tstamps[key] = p.instances
 	p.weights.SetWeight(feat, clas, weight+value)
@@ -120,13 +120,13 @@ func (p *AveragedPerceptron) updateFeature(clas string, feat string, weight floa
 func (p *AveragedPerceptron) AverageWeights() {
 	iter := p.weights.Features()
 	for feat := range iter {
-		classIter := p.GetFeatureWeights(feat)
+		classIter := p.weights.GetFeatureWeights(feat)
 		for kv := range classIter {
-			key := featureClassKey(feat, kv.Label)
+			key := model.FeatureClassKey(feat, kv.Label)
 			total := p.totals[key] + (p.instances-p.tstamps[key])*kv.Value
 			averaged, _ := decimal.NewFromFloat(total / p.instances).Round(3).Float64()
 			if averaged > 0.0001 {
-				p.weights.SetWeight(feat, clas, averaged)
+				p.weights.SetWeight(feat, kv.Label, averaged)
 			}
 		}
 	}
@@ -138,8 +138,8 @@ func (p *AveragedPerceptron) AddClass(clas string) {
 }
 
 // Model
-func (p AveragedPerceptron) Model() model.PerceptronModel {
-	return model.PerceptronModel{
+func (p AveragedPerceptron) Model() model.PerceptronJSONModel {
+	return model.PerceptronJSONModel{
 		Weights: p.weights.Map(),
 		Classes: p.classes,
 	}

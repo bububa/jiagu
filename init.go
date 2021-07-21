@@ -1,6 +1,7 @@
 package jiagu
 
 import (
+	"compress/gzip"
 	"embed"
 	_ "embed"
 	"fmt"
@@ -37,5 +38,21 @@ func initPerceptron(modelFile string) (*perceptron.Perceptron, error) {
 		return nil, err
 	}
 	defer fd.Close()
-	return perceptron.NewFromReader(fd)
+	gr, err := gzip.NewReader(fd)
+	if err != nil {
+		return nil, err
+	}
+	defer gr.Close()
+	return perceptron.NewFromReader(gr)
+}
+
+func Init() {
+	NerModel()
+	PosModel()
+	Stopwords()
+	Segment()
+	KeywordsInstance()
+	SummarizeInstance()
+	KnowledgeInstance()
+	SentimentInstance()
 }

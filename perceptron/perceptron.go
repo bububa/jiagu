@@ -1,10 +1,10 @@
 package perceptron
 
 import (
-	"encoding/json"
+	"compress/gzip"
+	"encoding/gob"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -48,15 +48,6 @@ func NewFromReader(r io.Reader) (*Perceptron, error) {
 		ends:   DefaultEnds,
 		model:  aModel,
 	}, nil
-}
-
-// NewFromModel 从model新建Perceptron
-func NewFromModel(aModel *model.PerceptronModel) *Perceptron {
-	return &Perceptron{
-		starts: DefaultStarts,
-		ends:   DefaultEnds,
-		model:  NewAveragedPerceptronFromModel(aModel),
-	}
 }
 
 // NewFromModelFile 从model文件新建Perceptron
@@ -156,26 +147,30 @@ func (p *Perceptron) Train(sentences []model.Sentence, iters int, shuf bool, sho
 
 // Save save trained model
 func (p *Perceptron) Save(loc string) error {
-	buf, err := json.Marshal(p.model.Model())
+	fd, err := os.OpenFile(loc, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(loc, buf, os.ModePerm)
+	defer fd.Close()
+	gw := gzip.NewWriter(fd)
+	defer gw.Close()
+	return gob.NewEncoder(gw).Encode(p.model.Model())
 }
 
 // Load load trained model
 func (p *Perceptron) Load(loc string) error {
-	data, err := ioutil.ReadFile(loc)
+	fd, err := os.Open(loc)
 	if err != nil {
 		return err
 	}
-	var aModel model.PerceptronModel
-	err = json.Unmarshal(data, &aModel)
+	defer fd.Close()
+	gr, err := gzip.NewReader(fd)
 	if err != nil {
 		return err
 	}
-	p.model = NewAveragedPerceptronFromModel(&aModel)
-	return nil
+	defer gr.Close()
+	p.model, err = NewAveragedPerceptronFromReader(gr)
+	return err
 }
 
 // getFeatures Map tokens into a feature representation, implemented as a {hashable: float} dict. If the features change, a new model must be trained.

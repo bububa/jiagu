@@ -27,13 +27,27 @@ This is a golang port from the [original python3 liberary](https://github.com/ow
 
 ---
 
+## 模型转换
+原始模型文件来自[python版本](https://github.com/ownthink/Jiagu), 为pickle或marshal格式，需要先转换json，再转成gob后gzip压缩
+1. pickle/marshal模型转json (sentiment.model 为marshal格式)
+```shell
+python ./cmd/modelconverter/pickle2json.py pickle.model ./data/model/xxx.json
+python ./cmd/modelconverter/marshal2json.py pickle.model ./data/model/xxx.json
+```
+
+2. json模型文件转gob后gzip压缩
+```shell
+go run ./cmd/modelconverter/main.go -i ./data/model/xxx.json -o ./model/xxx.model
+go run ./cmd/modelconverter/main.go -i ./data/model/xxx.json -o ./model/xxx.model --sentiment // 仅对sentiment.model使用
+```
+
 ## 使用方式
 1. 快速上手：分词、词性标注、命名实体识别
 ```golang
 import "github.com/bububa/jiagu"
 
 func main() {
-    // jiagu.init() // 可手动初始化，也可以动态初始化
+    // jiagu.Init() // 可手动初始化，也可以动态初始化
 
     text := "厦门明天会不会下雨"
 

@@ -1,6 +1,8 @@
 package model
 
-import "strings"
+import (
+	"strings"
+)
 
 // Each feature gets its own weight vector, so weights is a dict-of-dicts
 type Weights struct {
@@ -11,16 +13,16 @@ type Weights struct {
 }
 
 // NewWeights init Weights
-func NewWeights(cap int) Weights {
-	return Weights{
-		values:   make([][]float64, 0, l),
-		classes:  make([][]string, 0, l),
-		weights:  make(map[string]int, l),
-		features: make(map[string]int, l),
+func NewWeights(cap int) *Weights {
+	return &Weights{
+		values:   make([][]float64, 0, cap),
+		classes:  make([][]string, 0, cap),
+		weights:  make(map[string]int, cap),
+		features: make(map[string]int, cap),
 	}
 }
 
-func NewWeightsFromMap(mp map[string]map[string]float64) Weights {
+func NewWeightsFromMap(mp map[string]map[string]float64) *Weights {
 	l := len(mp)
 	w := NewWeights(l)
 	for feat, classes := range mp {
@@ -33,18 +35,18 @@ func NewWeightsFromMap(mp map[string]map[string]float64) Weights {
 
 //GetWeight get class weight value
 func (w Weights) GetWeight(feat string, clas string) float64 {
-	key := featureClassKey(feat, clas)
+	key := FeatureClassKey(feat, clas)
 	if featIdx, found := w.features[feat]; found {
 		if weightIdx, found := w.weights[key]; found {
-			return values[featIdx][weightIdx]
+			return w.values[featIdx][weightIdx]
 		}
 	}
 	return 0
 }
 
 // SetWeight set a weight value for feat->clas
-func (w Weights) SetWeight(feat string, clas string, value float64) {
-	key := featureClassKey(feat, clas)
+func (w *Weights) SetWeight(feat string, clas string, value float64) {
+	key := FeatureClassKey(feat, clas)
 	if featIdx, found := w.features[feat]; found {
 		if weightIdx, found := w.weights[key]; found {
 			w.values[featIdx][weightIdx] = value
@@ -65,7 +67,7 @@ func (w Weights) SetWeight(feat string, clas string, value float64) {
 
 func (w Weights) GetFeatureLength(feat string) int {
 	if featIdx, found := w.features[feat]; found {
-		return len(values[featIdx])
+		return len(w.values[featIdx])
 	}
 	return 0
 }
@@ -89,12 +91,12 @@ func (w Weights) GetFeatureWeights(feat string) <-chan KV {
 			}
 		}
 		close(ch)
-	}(values, classes)
+	}(classes, values)
 	return ch
 }
 
 // Map convert weights to map
-func (w Weights) Map() map[string][string]float64 {
+func (w Weights) Map() map[string]map[string]float64 {
 	l := len(w.values)
 	mp := make(map[string]map[string]float64, l)
 	for feat, featIdx := range w.features {
@@ -118,10 +120,10 @@ func (w Weights) Features() <-chan string {
 	return ch
 }
 
-func featureClassKey(feat string, clas string) string {
+func FeatureClassKey(feat string, clas string) string {
 	var buf strings.Builder
 	buf.WriteString(feat)
 	buf.WriteString("-")
-	buf.WriteString(cls)
+	buf.WriteString(clas)
 	return buf.String()
 }

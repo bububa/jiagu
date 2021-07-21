@@ -1,6 +1,7 @@
 package jiagu
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 
@@ -22,7 +23,11 @@ func Segment() *segment.Segment {
 			panic(err)
 		}
 		defer modelR.Close()
-		seg, err = segment.NewFromReader(vocabR, modelR)
+		gw, err := gzip.NewReader(modelR)
+		if err != nil {
+			panic(err)
+		}
+		seg, err = segment.NewFromReader(vocabR, gw)
 		if err != nil {
 			panic(err)
 		}

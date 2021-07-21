@@ -1,7 +1,7 @@
 package bayes
 
 import (
-	"encoding/json"
+	"encoding/gob"
 	"io"
 	"math"
 	"os"
@@ -51,7 +51,7 @@ func NewFromModel(model Model) *Bayes {
 // NewFromReader 从io.Reader创建Bayes
 func NewFromReader(r io.Reader) (*Bayes, error) {
 	var model Model
-	err := json.NewDecoder(r).Decode(&model)
+	err := gob.NewDecoder(r).Decode(&model)
 	if err != nil {
 		return nil, err
 	}
@@ -61,12 +61,12 @@ func NewFromReader(r io.Reader) (*Bayes, error) {
 // Save save model
 func (b *Bayes) Save(w io.Writer) error {
 	model := b.ToModel()
-	return json.NewEncoder(w).Encode(model)
+	return gob.NewEncoder(w).Encode(model)
 }
 
 // SaveFile save model to a file
 func (b *Bayes) SaveFile(loc string) error {
-	fd, err := os.OpenFile(loc, os.O_RDONLY|os.O_CREATE|os.O_APPEND, 0666)
+	fd, err := os.OpenFile(loc, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}

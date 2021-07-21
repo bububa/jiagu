@@ -1,6 +1,7 @@
 package jiagu
 
 import (
+	"compress/gzip"
 	"fmt"
 
 	"github.com/bububa/jiagu/knowledge"
@@ -16,7 +17,9 @@ func KnowledgeInstance() *knowledge.Knowledge {
 			panic(err)
 		}
 		defer modelR.Close()
-		knowledgeModel, err = knowledge.NewFromReader(modelR)
+		gr, err := gzip.NewReader(modelR)
+		defer gr.Close()
+		knowledgeModel, err = knowledge.NewFromReader(gr)
 		if err != nil {
 			panic(err)
 		}
