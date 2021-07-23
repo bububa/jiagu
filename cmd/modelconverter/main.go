@@ -44,19 +44,6 @@ func main() {
 	defer oFd.Close()
 	gw := gzip.NewWriter(oFd)
 	defer gw.Close()
-	/*
-		zipWriter := zip.NewWriter(oFd)
-		defer zipWriter.Close()
-
-		fInfo, err := fd.Stat()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		zipFile, err := zipWriter.Create(fInfo.Name())
-		if err != nil {
-			log.Fatalln(err)
-		}
-	*/
 	if sentimentModel {
 		var jsonModel bayes.Model
 		err = json.NewDecoder(fd).Decode(&jsonModel)
